@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"log"
 	"os"
+	"strings"
 
 	"github.com/alireza0/s-ui/config"
 
@@ -65,6 +66,16 @@ func MigrateDb() {
 		err = to1_3(tx)
 		if err != nil {
 			log.Fatal("Migration to 1.3 failed: ", err)
+			return
+		}
+		dbVersion = "1.3"
+	}
+
+	// Before 1.4
+	if strings.HasPrefix(dbVersion, "1.3") {
+		err = to1_4(tx)
+		if err != nil {
+			log.Fatal("Migration to 1.4 failed: ", err)
 			return
 		}
 	}
