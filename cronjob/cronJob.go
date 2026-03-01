@@ -3,6 +3,8 @@ package cronjob
 import (
 	"time"
 
+	"github.com/alireza0/s-ui/config"
+
 	"github.com/robfig/cron/v3"
 )
 
@@ -29,6 +31,8 @@ func (c *CronJob) Start(loc *time.Location, trafficAge int) error {
 		}
 		// Start core if it is not running
 		c.cron.AddJob("@every 5s", NewCheckCoreJob())
+		// Start traffic reset job (configurable via SUI_RESET_TRAFFIC_INTERVAL, default 10m)
+		c.cron.AddJob(config.GetResetTrafficInterval(), NewResetTrafficJob())
 	}()
 
 	return nil

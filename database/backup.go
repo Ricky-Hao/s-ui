@@ -54,6 +54,8 @@ func GetDb(exclude string) ([]byte, error) {
 		&model.Stats{},
 		&model.Client{},
 		&model.Changes{},
+		&model.ClientAutoreset{},
+		&model.TrafficHistory{},
 	)
 	if err != nil {
 		return nil, err
@@ -116,6 +118,22 @@ func GetDb(exclude string) ([]byte, error) {
 		return nil, err
 	} else if len(clients) > 0 {
 		if err := backupDb.Save(clients).Error; err != nil {
+			return nil, err
+		}
+	}
+	var autoresets []model.ClientAutoreset
+	if err := db.Model(&model.ClientAutoreset{}).Scan(&autoresets).Error; err != nil {
+		return nil, err
+	} else if len(autoresets) > 0 {
+		if err := backupDb.Save(autoresets).Error; err != nil {
+			return nil, err
+		}
+	}
+	var trafficHistories []model.TrafficHistory
+	if err := db.Model(&model.TrafficHistory{}).Scan(&trafficHistories).Error; err != nil {
+		return nil, err
+	} else if len(trafficHistories) > 0 {
+		if err := backupDb.Save(trafficHistories).Error; err != nil {
 			return nil, err
 		}
 	}
