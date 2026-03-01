@@ -66,3 +66,11 @@ func GetDBFolderPath() string {
 func GetDBPath() string {
 	return fmt.Sprintf("%s/%s.db", GetDBFolderPath(), GetName())
 }
+
+func GetResetTrafficInterval() string {
+	interval := os.Getenv("SUI_RESET_TRAFFIC_INTERVAL")
+	if interval == "" {
+		return "@every 10m"
+	}
+	return "@every " + interval
+}

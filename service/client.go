@@ -113,6 +113,14 @@ func (s *ClientService) Save(tx *gorm.DB, act string, data json.RawMessage, host
 		if err != nil {
 			return nil, err
 		}
+		// Clean up related autoreset configuration and traffic history
+		if err = tx.Where("client_id = ?", id).Delete(model.ClientAutoreset{}).Error; err != nil {
+			logger.Warning("Failed to delete autoreset config for client: ", err)
+		}
+		if err = tx.Where("client_id = ?", id).Delete(model.TrafficHistory{}).Error; err != nil {
+			logger.Warning("Failed to delete traffic history for client: ", err)
+		}
+		err = nil // cleanup failures are non-fatal
 	default:
 		return nil, common.NewErrorf("unknown action: %s", act)
 	}
