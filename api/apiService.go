@@ -9,6 +9,7 @@ import (
 	"github.com/alireza0/s-ui/logger"
 	"github.com/alireza0/s-ui/service"
 	"github.com/alireza0/s-ui/util"
+	"github.com/alireza0/s-ui/util/common"
 
 	"github.com/gin-gonic/gin"
 )
@@ -26,6 +27,7 @@ type ApiService struct {
 	service.PanelService
 	service.StatsService
 	service.ServerService
+	service.AutoresetService
 }
 
 func (a *ApiService) LoadData(c *gin.Context) {
@@ -402,4 +404,98 @@ func (a *ApiService) GetCheckOutbound(c *gin.Context) {
 	link := c.Query("link")
 	result := a.ConfigService.CheckOutbound(tag, link)
 	jsonObj(c, result, nil)
+}
+
+// GetAutoreset returns the autoreset configuration for a client
+func (a *ApiService) GetAutoreset(c *gin.Context) {
+	clientIdStr := c.Query("clientId")
+	if clientIdStr == "" {
+		jsonMsg(c, "autoreset", nil)
+		return
+	}
+
+	clientId, err := strconv.ParseUint(clientIdStr, 10, 32)
+	if err != nil {
+		jsonMsg(c, "autoreset", err)
+		return
+	}
+
+	autoreset, err := a.AutoresetService.Get(uint(clientId))
+	if err != nil {
+		jsonMsg(c, "autoreset", err)
+		return
+	}
+
+	jsonObj(c, autoreset, nil)
+}
+
+// SaveAutoreset saves the autoreset configuration for a client
+func (a *ApiService) SaveAutoreset(c *gin.Context) {
+	clientIdStr := c.Request.FormValue("clientId")
+	resetModeStr := c.Request.FormValue("resetMode")
+	resetDayOfMonthStr := c.Request.FormValue("resetDayOfMonth")
+	resetPeriodDaysStr := c.Request.FormValue("resetPeriodDays")
+
+	clientId, err := strconv.ParseUint(clientIdStr, 10, 32)
+	if err != nil {
+		jsonMsg(c, "autoreset", err)
+		return
+	}
+
+	resetMode, err := strconv.Atoi(resetModeStr)
+	if err != nil {
+		jsonMsg(c, "autoreset", common.NewError("invalid resetMode"))
+		return
+	}
+	resetDayOfMonth, _ := strconv.Atoi(resetDayOfMonthStr)
+	resetPeriodDays, _ := strconv.Atoi(resetPeriodDaysStr)
+
+	autoreset := &service.AutoresetData{
+		ResetMode:       resetMode,
+		ResetDayOfMonth: resetDayOfMonth,
+		ResetPeriodDays: resetPeriodDays,
+	}
+
+	err = a.AutoresetService.Save(uint(clientId), autoreset.ToModel())
+	if err != nil {
+		jsonMsg(c, "autoreset", err)
+		return
+	}
+
+	jsonMsg(c, "save", nil)
+}
+
+// GetTrafficHistory returns paginated traffic history for a client
+func (a *ApiService) GetTrafficHistory(c *gin.Context) {
+	clientIdStr := c.Query("clientId")
+	pageStr := c.DefaultQuery("page", "1")
+	pageSizeStr := c.DefaultQuery("pageSize", "10")
+
+	clientId, err := strconv.ParseUint(clientIdStr, 10, 32)
+	if err != nil {
+		jsonMsg(c, "traffic-history", err)
+		return
+	}
+
+	page, _ := strconv.Atoi(pageStr)
+	pageSize, _ := strconv.Atoi(pageSizeStr)
+	if page < 1 {
+		page = 1
+	}
+	if pageSize < 1 {
+		pageSize = 10
+	}
+
+	histories, total, err := a.AutoresetService.GetTrafficHistory(uint(clientId), page, pageSize)
+	if err != nil {
+		jsonMsg(c, "traffic-history", err)
+		return
+	}
+
+	jsonObj(c, map[string]interface{}{
+		"histories": histories,
+		"total":     total,
+		"page":      page,
+		"pageSize":  pageSize,
+	}, nil)
 }

@@ -3,6 +3,9 @@ package cronjob
 import (
 	"time"
 
+	"github.com/alireza0/s-ui/config"
+	"github.com/alireza0/s-ui/logger"
+
 	"github.com/robfig/cron/v3"
 )
 
@@ -17,6 +20,12 @@ func NewCronJob() *CronJob {
 func (c *CronJob) Start(loc *time.Location, trafficAge int) error {
 	c.cron = cron.New(cron.WithLocation(loc), cron.WithSeconds())
 	c.cron.Start()
+
+	// Register traffic reset job during startup so validation errors are immediately visible
+	resetInterval := config.GetResetTrafficInterval()
+	if _, err := c.cron.AddJob(resetInterval, NewResetTrafficJob()); err != nil {
+		logger.Warning("Failed to register traffic reset cron job with interval '%s': %v", resetInterval, err)
+	}
 
 	go func() {
 		// Start stats job
